@@ -3,7 +3,7 @@
 Each test checks one rule M3 and M4 rely on: the PCA sign rules, that the
 variance shares add up, that PCA finds factors we planted ourselves, that a
 swap of PC3 and PC4 is caught, the period bounds, the report's number
-formatting, and that the suspect F17 days are dropped the way the README says.
+formatting, and that the suspect F17 days are dropped as data.SUSPECT_DAYS says.
 """
 
 import numpy as np

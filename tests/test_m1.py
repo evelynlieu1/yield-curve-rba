@@ -1,6 +1,6 @@
 """Tests for the M1 loaders and helpers (src/data.py, src/m1_validate.py).
 
-Each test checks one rule from the README that later milestones rely on. The
+Each test checks one rule about the data that later milestones rely on. The
 F17 and A2 tests read the real files in data/raw/ (read only). The two
 tests for checks 11-12 (added in M5) use made-up F2 data and the real F1
 file; the F1 test is skipped if that gitignored file is not on disk.
@@ -65,7 +65,7 @@ def test_a2_range_strings_stay_missing(a2):
 
 
 def test_26_changes_in_f17_sample(a2, f17):
-    """README and the README: 26 changes inside the curve sample, 9 cuts and 17 hikes."""
+    """26 changes inside the curve sample: 9 cuts and 17 hikes."""
     inside = m1_validate.changes_in_sample(a2, f17["yields"])
     assert len(inside) == 26
     assert int((inside["change_pp"] < 0).sum()) == 9
@@ -162,23 +162,13 @@ def test_period_forward_helpers():
 
 
 def test_blank_cells_are_missing_and_text_is_an_error():
-    """the README: blanks are missing data, never zero; text in F17 stops the loader."""
+    """Blanks are missing data, never zero; text in F17 stops the loader."""
     assert np.isnan(data._to_float(" ", "x"))
     assert data._to_float("1.25", "x") == 1.25
     with pytest.raises(ValueError):
         data._to_float("abc", "x")
     # The report formatter shows every kind of missing value as an empty cell.
     assert [m1_validate.fmt_cell(v) for v in (None, pd.NA, pd.NaT, np.nan)] == ["", "", "", ""]
-
-
-def test_processed_files_read_back(f17):
-    """data/processed/ (written by m1_validate.py) reads back to exactly what the loaders give."""
-    path = data.PROCESSED_DIR / "f17_yields.csv"
-    if not path.exists():
-        pytest.skip("run src/m1_validate.py first to write data/processed/")
-    back = pd.read_csv(path, index_col="date", parse_dates=["date"])
-    back.columns = [float(c) for c in back.columns]
-    pd.testing.assert_frame_equal(back, f17["yields"], check_freq=False, check_names=False)
 
 
 def test_sha256_ignores_crlf_only_when_asked(tmp_path):

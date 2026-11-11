@@ -4,7 +4,7 @@ Each test checks one rule the hedging test relies on: the duration hedge is DV01
 hedge has no in-sample exposure to the factors it was built on, the rolling loop never uses data
 dated after t, H2 hedges a two-factor world perfectly, the paired test (Newey-West and block-clustered)
 matches a hand calculation, the rounding floor and the fallback rule do what their docstrings say, and
-the real-data run treats the suspect F17 days the way the README says.
+the real-data run treats the suspect F17 days as data.SUSPECT_DAYS says.
 """
 
 import numpy as np

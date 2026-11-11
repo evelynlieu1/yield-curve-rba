@@ -3,6 +3,5 @@ __pycache__/
 .pytest_cache/
 # Data is downloaded from the URLs in data/MANIFEST.csv, not stored here.
 data/raw/
-data/processed/
 # Result tables are recreated by running the scripts; reports and charts are kept.
 outputs/**/*.csv

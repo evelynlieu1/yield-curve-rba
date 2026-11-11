@@ -1,4 +1,4 @@
-"""M4 - hedging test: does a 3-factor hedge beat a duration hedge out of sample? the README, "M4".
+"""M4 - hedging test: does a 3-factor hedge beat a duration hedge out of sample?
 
 Position: long a 7-year F17 zero, 1 unit of DV01, hedged with 2, 5 and 10-year zeros. Daily residual
 in bp of DV01: r = dy7 - sum_i w_i dy_i (dy = daily changes in bp from data.daily_changes_bp; w_i = DV01
@@ -26,7 +26,7 @@ import statsmodels.api as sm
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from data import PROJECT_DIR, load_f17, daily_changes_bp  # noqa: E402
 from m1_validate import md_table, style_axes, COLORS  # noqa: E402  (same table and chart style as M1)
-from m2_expectations import EPISODES, episode_of, fmt_p  # noqa: E402  (the README episodes, one definition)
+from m2_expectations import EPISODES, episode_of, fmt_p  # noqa: E402  (episodes defined once, in M2)
 from m3_factors import (  # noqa: E402  (M3's PCA and its PC3 diagnostics, reused as they are)
     MATURITIES, ROUNDING_VAR_BP2, pca_loadings, best_match, separation_table, to_text,
 )
@@ -38,7 +38,7 @@ OUT_DIR = PROJECT_DIR / "outputs" / "m4"
 REPORT_PATH = OUT_DIR / "hedging_report.md"
 
 TARGET = 7.0                      # the position: a 7-year zero, 1 unit of DV01
-H1_LEGS = (2.0, 10.0)             # duration hedge legs (the README M4)
+H1_LEGS = (2.0, 10.0)             # duration hedge legs
 FACTOR_HEDGES = {                 # hedge -> (instruments, PCs whose exposure is set to zero)
     "H2": ([2.0, 10.0], ["PC1", "PC2"]),
     "H3": ([2.0, 5.0, 10.0], ["PC1", "PC2", "PC3"]),
@@ -268,7 +268,7 @@ def summary_table(resid, blocks):
 
 
 def episode_table(resid, blocks):
-    """Residual sd per hedge and variance removed vs H0, by the README episode. Each out-of-sample day goes
+    """Residual sd per hedge and variance removed vs H0, by episode. Each out-of-sample day goes
     to the episode of its own date (m2_expectations.episode_of, by calendar month). Output: one row per
     episode with days: 'n days', 'n blocks' (blocks with a day in it), 'sd H0'..'sd H3' (bp/day),
     '% removed H1'..'% removed H3', 'floor H3' (H3's rounding floor sd on those days, as in summary_table).
@@ -381,7 +381,7 @@ def plot_weights(resid, blocks, path):
 
 def plot_cumulative(resid, path):
     """cumulative_loss_difference.png: running sum of r_H3^2 - r_bench^2 for each pair in PAIRS
-    (falling = H3 ahead); grey lines mark episode starts (the README episodes). Inputs: resid - main-run
+    (falling = H3 ahead); grey lines mark episode starts. Inputs: resid - main-run
     days with columns H1-H3; path - PNG file."""
     fig, ax = plt.subplots(figsize=(10, 4.5), facecolor=COLORS["surface"])
     ax.axhline(0, color=COLORS["muted"], linewidth=0.8)

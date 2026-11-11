@@ -1,4 +1,4 @@
-"""M3 - factor structure of daily F17 yield changes (PCA). the README, "M3".
+"""M3 - factor structure of daily F17 yield changes (PCA).
 
 Daily changes in bp of F17 zero-coupon yields at 0.25-10 years (40 series;
 the 0-year point is the cash rate), without the changes into and out of
@@ -42,19 +42,19 @@ MATURITIES_NO_3M = [m for m in MATURITIES if m >= 0.5]     # robustness: 0.5 to 
 N_SHOW = 3                                                 # factors reported: level, slope, curvature
 PC_NAMES = ["PC1", "PC2", "PC3"]
 N_MATCH = 5            # 'best match' searches the reference's PC1-PC5, so a swap with PC4 or PC5 shows
-HEDGE_MATURITIES = [2.0, 5.0, 10.0]                        # M4's H3 hedge instruments (the README M4)
+HEDGE_MATURITIES = [2.0, 5.0, 10.0]                        # M4's H3 hedge instruments
 ROUNDING_VAR_BP2 = 1 / 6   # F17 yields have 2 decimals: rounding error U(-0.5, 0.5) bp has variance 1/12,
                            # and a change is the difference of two such errors (2/12 = 1/6 bp^2 per maturity
                            # per day, if the errors are independent from day to day)
 
-# Sign rules (the README M3). PC2 and PC3 are signed at these maturities; if a
+# Sign rules. PC2 and PC3 are signed at these maturities; if a
 # maturity is not in the data, the nearest one is used (see apply_sign_rules).
 PC2_SIGN_MATURITY = 10.0
 PC3_SIGN_MATURITY = 5.0
 
-# Periods (the README M3). A change belongs to the date it ends on. Bounds are
+# Periods. A change belongs to the date it ends on. Bounds are
 # inclusive calendar dates; None = start or end of the data. The YCC period
-# follows the README's month labels (Mar 2020 - Nov 2021), so it also holds the
+# runs by month (Mar 2020 - Nov 2021), so it also holds the
 # 2-18 Mar 2020 sell-off before YCC began. Jan-Feb 2020 and Dec 2021 are in
 # the full sample but in no period.
 YCC_LABEL = "YCC (Mar 2020 - Nov 2021)"
@@ -90,7 +90,7 @@ def _nearest(index, target):
 
 
 def apply_sign_rules(loadings):
-    """Fix the arbitrary sign of each eigenvector with the the README rules.
+    """Fix the arbitrary sign of each eigenvector with the rules.
 
     Input:  loadings - DataFrame, index = maturities in years (floats),
             columns = PC1, PC2, ... (eigenvectors).

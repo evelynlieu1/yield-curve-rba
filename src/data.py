@@ -11,13 +11,11 @@ raw RBA files are read live in one place:
   rows hold ranges such as "-0.50 to -1.00"; these become NaN and are flagged,
   so no number is ever invented for them.
 - target_in_effect and target_known_at_close turn the A2 change list into a
-  target for any set of dates (conventions in the README, "Conventions used
-  everywhere"). Dates the A2 file cannot know about (after its publication
+  target for any set of dates (see their docstrings for the timing rules). Dates the A2 file cannot know about (after its publication
   date plus one day) get NaN, never an invented "no change".
 - F1 (cash rate target, actual cash rate, OIS) and F2 (bond yields), added
   in M5, are read by load_f1 and load_f2. Both are gitignored third-party
-  data: keep them in memory, never write their series to data/processed/ or
-  outputs/ (details in those functions).
+  data: keep them in memory, never write their series to disk (details in those functions).
 
 Nothing here writes to data/raw/. The raw RBA headers contain long dashes; the
 code finds maturities with number patterns, so it never needs to type one.
@@ -39,7 +37,6 @@ import pandas as pd
 # works no matter which folder Python is started from.
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 RAW_DIR = PROJECT_DIR / "data" / "raw"
-PROCESSED_DIR = PROJECT_DIR / "data" / "processed"
 MANIFEST_PATH = PROJECT_DIR / "data" / "MANIFEST.csv"
 
 # The two F17 files. 'kind' is the short name used by load_f17.
@@ -49,7 +46,7 @@ F17_FILES = {
 }
 A2_FILE = "rba_a02_monetary_policy_changes.xlsx"
 
-# The F17 maturity grid the README expects: 0 to 10 years in quarter-year steps,
+# The F17 maturity grid: 0 to 10 years in quarter-year steps,
 # 41 points. Built from integers so there is no floating point drift
 # (0.25 * k is exact in binary floating point).
 MATURITY_GRID = [0.25 * k for k in range(41)]
@@ -88,7 +85,7 @@ def detect_encoding(path):
     Output: 'utf-8-sig' if the file starts with a UTF-8 byte order mark,
             'utf-8' if it decodes as UTF-8 without one, otherwise 'cp1252'
             (Windows-1252, which can decode any byte).
-    Why:    the README expected Windows-1252, but the files on disk start with a
+    Why:    RBA files were once Windows-1252, but the files on disk start with a
             UTF-8 byte order mark. Detecting it means the loader works for
             either, and the validation report can say which one it found.
     """
@@ -418,7 +415,7 @@ def target_in_effect(dates, changes=None):
                   made-up table.
     Output: Series of targets (per cent), indexed by the normalised dates,
             named 'target_in_effect'.
-    Convention (the README): A2 dates are effective dates, so the target on day d
+    Convention: A2 dates are effective dates, so the target on day d
     is the new_target of the latest change whose effective_date is on or
     before d. Dates before the first change get NaN. A change whose
     new_target is NaN (an early-1990s range) gives NaN until the next change.
@@ -451,7 +448,7 @@ def target_known_at_close(dates, changes=None):
     Inputs: as for target_in_effect.
     Output: Series of targets (per cent), indexed by the normalised input
             dates (not shifted), named 'target_known_at_close'.
-    Convention (the README): target_known_at_close(d) = target_in_effect(d + 1
+    Convention: target_known_at_close(d) = target_in_effect(d + 1
     calendar day). Since February 2008 a decision is announced on the Board
     day (2.30 pm) and takes effect the next day, so a decision announced on d
     is already known (and priced) at the 4:30 pm close on d. Sources are
@@ -476,7 +473,7 @@ def target_known_at_close(dates, changes=None):
 # F17 days whose short-end move looks like a curve-fitting artefact, not a
 # market move. Found by M1: outputs/m1/validation_report.md, section 5
 # ("Blanks, ranges and daily moves", one-day reversals). Keys are dates
-# (YYYY-MM-DD), values the M1 note. Decision taken after M1 (the README M3):
+# (YYYY-MM-DD), values are the M1 note. Decision taken after M1:
 # analyses of daily yield CHANGES leave out the change into and the change
 # out of each day; a robustness variant keeps them. m1_validate.py imports
 # this dict, so the M1 report and the later milestones use the same list.
@@ -533,7 +530,7 @@ def daily_changes_bp(yields, maturities, drop_suspect=True):
 # checksums in data/MANIFEST.csv). Both are gitignored because they hold
 # third-party data (licensing notes in load_f1 and load_f2). Rule for every
 # script: keep what these loaders return in memory. Never write the series,
-# or processed copies of them, to data/processed/ or outputs/. Only
+# or copies of them, to disk. Only
 # statistics and charts derived from them may be written.
 F1_FILE = "rba_f1_money_market_daily.csv"
 F2_FILE = "rba_f2_govt_bond_yields_daily.csv"
@@ -681,13 +678,12 @@ def load_f1():
         5 Aug 2013), the same dates for all three maturities. 985 NaN per
         OIS column in all (4 inside the span, 981 after it).
 
-    Licensing (data/MANIFEST.csv, README "Licensing"): the 'Source' row of
+    Licensing (data/MANIFEST.csv): the 'Source' row of
     F1 names FENICS for the three OIS columns and ASX for the bank bill
     columns (not read here). Those are third-party data, not RBA's, so F1 is
     gitignored and its OIS values must not be published. The cash rate
     columns are RBA data under the RBA's own cash rate terms. Keep this
-    frame in memory: no series or processed copies in data/processed/ or
-    outputs/, only statistics and charts derived from them.
+    frame in memory: no series or processed copies on disk, only statistics and charts derived from them.
     """
     header, rows = _read_rba_table(RAW_DIR / F1_FILE)
     titles, ids, units = header["Title"], header["Series ID"], header["Units"]
@@ -739,7 +735,7 @@ def load_f2():
     Licensing (data/MANIFEST.csv): the file names the RBA as its source, but
     a web summary says the inputs come from Yieldbroker. That is not checked,
     so F2 is gitignored. Keep this frame in memory: no series or processed
-    copies in data/processed/ or outputs/, only statistics and charts.
+    copies on disk, only statistics and charts.
     """
     header, rows = _read_rba_table(RAW_DIR / F2_FILE)
     titles, ids, units = header["Title"], header["Series ID"], header["Units"]

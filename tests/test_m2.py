@@ -1,6 +1,6 @@
 """Tests for the M2 expectations test (src/m2_expectations.py).
 
-Each test pins one rule from the README M2 that the results depend on: no
+Each test pins one M2 rule that the results depend on: no
 look-ahead, announcement-day timing, the forecast and outcome dates and the
 sample rule, the gap adjustment and error sign, the Newey-West lag, the
 Harvey-Leybourne-Newbold DM, the Diebold-Mariano sign, the Fama regression
@@ -207,7 +207,7 @@ def test_fama_regression_recovers_known_coefficients():
 
 
 def test_episodes_cover_sample():
-    """The 7 the README episodes cover Jan 2017 - Sep 2026 month by month, without gaps or overlaps."""
+    """The 7 episodes cover Jan 2017 - Sep 2026 month by month, without gaps or overlaps."""
     for (_, _, end), (_, start, _) in zip(m2.EPISODES, m2.EPISODES[1:]):
         assert pd.Period(start, "M") == pd.Period(end, "M") + 1
     months = pd.period_range("2017-01", "2026-09", freq="M").to_timestamp(how="end").normalize()

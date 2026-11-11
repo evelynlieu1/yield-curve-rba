@@ -3,20 +3,19 @@
 Run from the project folder (01-yield-curve-vs-rba):
     python src/m1_validate.py
 
-What it does (the README, section M1):
+What it does:
   1. Loads F17 yields and forwards and the A2 cash rate changes with the
      loaders in src/data.py. Checks 11 and 12 (added in M5) also load F2
      and F1. Those two files are gitignored third-party data: they stay in
      memory, and only statistics and one chart derived from them are written.
   2. Runs every M1 check and writes outputs/m1/validation_report.md: a summary table with one PASS / FLAG / NOT RUN line per check,
      then a section of detail for each check.
-  3. Saves figures (PNG) and one audit CSV to outputs/m1/, and tidy copies of
-     the inputs to data/processed/ for later milestones.
+  3. Saves figures (PNG) and one audit CSV to outputs/m1/.
 
 Result words:
   PASS    - the check came out as expected.
   FLAG    - something to read before M2. Not necessarily an error: it can be a
-            finding about the data, or a place where the README needs updating.
+            finding about the data that later steps must allow for.
   NOT RUN - an input is missing.
 
 Units: yields and rates in per cent per annum. Differences in basis points
@@ -38,7 +37,7 @@ from dateutil.easter import easter  # dateutil is installed with pandas
 # Make "import data" work when this file is run as a script from any folder.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from data import (  # noqa: E402  (import after the sys.path line on purpose)
-    PROJECT_DIR, RAW_DIR, PROCESSED_DIR, MANIFEST_PATH, F17_FILES, A2_FILE,
+    PROJECT_DIR, RAW_DIR, MANIFEST_PATH, F17_FILES, A2_FILE,
     MATURITY_GRID, detect_encoding, sha256_of_file, load_f17, load_a2,
     target_in_effect, target_known_at_close, is_range_text,
 )
@@ -55,12 +54,12 @@ REPORT_PATH = OUT_DIR / "validation_report.md"
 
 BP = 100.0                 # per cent -> basis points
 TOL = 0.005                # two 2-decimal numbers count as equal if they differ by < 0.5 bp
-EXPECTED_ENCODING = "utf-8-sig"  # F17 CSVs: UTF-8 with a byte order mark (found in M1; the README M1)
-EXPECTED_ROWS = 2448       # F17 rows stated in README.md
-EXPECTED_CHANGES = 26      # A2 changes inside the F17 sample (README.md, the README)
+EXPECTED_ENCODING = "utf-8-sig"  # F17 CSVs: UTF-8 with a byte order mark
+EXPECTED_ROWS = 2448       # F17 rows, 3 Jan 2017 - 30 Sep 2026
+EXPECTED_CHANGES = 26      # A2 changes inside the F17 sample
 EXPECTED_CUTS = 9
 EXPECTED_HIKES = 17
-MAX_GAP_DAYS = 4           # the README: report gaps longer than 4 calendar days
+MAX_GAP_DAYS = 4           # report gaps longer than 4 calendar days
 VALUE_BOUNDS = (-1.0, 10.0)  # plausible range for AUD yields 2017-2026, per cent
 REVERSAL_BP = 15           # check 5: a move of at least this many bp that the next F17 day
                            # reverses by at least this many bp, at the same maturity
@@ -68,8 +67,8 @@ STEP_TOL_BP = 2            # check 8: the 0-year point "moves by the change" if 
 ZERO_MATCH_SHARE = 0.99    # check 8: PASS if the 0-year point equals the target on > 99% of days
 YCC_BAND_BP = 5            # check 10: "on target" means within 5 bp of the YCC target
 M2_MATURITIES = [0.25, 0.5, 1.0]  # forward maturities (years) M2 will read: 3, 6, 12 months
-M2_HORIZONS = [3, 6, 12]   # M2 horizons in months (the README M2)
-M3_FIRST_PERIOD = ("2017-01-01", "2019-12-31")  # first M3 sub-period (the README M3)
+M2_HORIZONS = [3, 6, 12]   # M2 horizons in months
+M3_FIRST_PERIOD = ("2017-01-01", "2019-12-31")  # first M3 sub-period
 F2_CORR_MIN = 0.95         # check 11: PASS needs daily 10-year changes to correlate at least this much
 F2_GAP_MAX_BP = 10         # check 11: ... and the F2 - F17 10-year level gap to stay within +/- 10 bp
                            # (both thresholds are judgement: loose bounds for "same market, different
@@ -397,7 +396,7 @@ def check_checksums():
     number of CRLF line endings: if git added one CR per line, the two are
     equal. Files listed but not on disk are reported as missing. F1 and F2
     are gitignored, so a fresh clone lacks them until they are re-downloaded
-    (the README, "Missing inputs"); since 20 Oct 2026 they are on this disk.
+   ; since 20 Oct 2026 they are on this disk.
     """
     manifest = pd.read_csv(MANIFEST_PATH)
     rows, matched, missing, lf_only, cr_explained = [], 0, [], 0, True
@@ -407,7 +406,7 @@ def check_checksums():
             missing.append(item.file)
             rows.append({"file": item.file, "on disk": "no", "manifest bytes": item.bytes,
                          "disk bytes": "", "extra bytes": "", "CRLF count": "", "raw hash": "",
-                         "LF-normalised hash": "", "result": "missing (the README, Missing inputs)"})
+                         "LF-normalised hash": "", "result": "missing"})
             continue
         raw = sha256_of_file(path)
         is_text = path.suffix.lower() == ".csv"
@@ -450,10 +449,9 @@ def check_f17_format():
     """Report the encoding and header block of the two F17 files.
 
     detect_encoding reads the first bytes ('utf-8-sig' = UTF-8 with a byte
-    order mark). PASS if both files have EXPECTED_ENCODING (what the README M1
-    now says). The loader works with any of the encodings detect_encoding
-    returns, so a FLAG here only means the README is out of date, not that the
-    data were misread.
+    order mark). PASS if both files have EXPECTED_ENCODING. The loader works with any of
+    the encodings detect_encoding returns, so a FLAG here only means the RBA changed
+    its file format, not that the data were misread.
     The header block is shown by its labels: the first cell of every line up
     to the 'Series ID' line (found by search, not by a fixed line count).
     """
@@ -472,10 +470,10 @@ def check_f17_format():
     ok = found == [EXPECTED_ENCODING]
     status = "PASS" if ok else "FLAG"
     if ok:
-        line = f"Both files are {EXPECTED_ENCODING}, as the README M1 expects; header block found by its labels."
+        line = f"Both files are {EXPECTED_ENCODING}, as expected; header block found by its labels."
     else:
-        line = (f"Encoding found: {', '.join(found)}; the README M1 expects {EXPECTED_ENCODING}. Parsing is "
-                "unaffected (the loader detects the encoding); update the README.")
+        line = (f"Encoding found: {', '.join(found)}; expected {EXPECTED_ENCODING}. Parsing is "
+                "unaffected (the loader detects the encoding).")
     body = (
         md_table(table) + "\n\n"
         "'utf-8-sig' means UTF-8 that starts with a byte order mark. The 'labels' column is read from "
@@ -797,7 +795,7 @@ def check_a2(changes):
         + md_table(shown) + "\n\n"
         f"Rows where the change does not equal the difference in targets: {len(bad)}.\n\n"
         f"Rows with a zero change: {zero_text} (the target did not move; A2 lists the row because another "
-        f"administered rate changed). README.md says '99 changes'; the file has {len(changes)} rows, of which "
+        f"administered rate changed). The file has {len(changes)} rows, of which "
         f"{len(changes) - len(zero_change)} move the target.\n\n"
         f"Coverage: the file's 'Publication date' is {covers_until - pd.Timedelta(days=1):%d %b %Y}, so it knows "
         f"the target up to {covers_until:%d %b %Y} (a decision announced on the publication date takes effect "
@@ -867,7 +865,7 @@ def check_changes(changes, yields):
 def check_zero_year(yields, changes):
     """Compare F17's 0-year yield with the A2 cash rate target.
 
-    Two alignments (the README conventions):
+    Two alignments:
       - target_in_effect(d): the target that applies on day d;
       - target_known_at_close(d): the target in effect on d + 1, which
         includes a decision announced on d.
@@ -985,7 +983,7 @@ def check_zero_year(yields, changes):
     bias_text = ", ".join(f"{-v:+.0f} bp in {y}" for y, v in me_spread.items() if abs(v) >= 0.5) or "none"
 
     # Notes for M2 (2): the forward at maturity h/12 years is for the night
-    # t + 365.25 * h / 12 days; the README's outcome date is t + h calendar
+    # t + 365.25 * h / 12 days; the outcome date used is t + h calendar
     # months. List forecast dates where the two dates have different targets.
     last_day = yields.index[-1]
     knife = []
@@ -1042,8 +1040,8 @@ def check_zero_year(yields, changes):
         "against the term premium, which pushes the error negative. A forecast that uses only date-t data "
         "removes it: forward(t, h) - (0-year(t) - target_in_effect(t)). Whether to report it next to the raw "
         "forward is an M2 decision.\n"
-        "- Outcome date: the forward at h/12 years is for the night t + 365.25 h / 12 days, but the README's "
-        "outcome is target_in_effect(t + h calendar months). The two dates fall on opposite sides of a "
+        "- Outcome date: the forward at h/12 years is for the night t + 365.25 h / 12 days, but the "
+        "outcome used is target_in_effect(t + h calendar months). The two dates fall on opposite sides of a "
         f"decision for: {knife_text}. M2 should pick one rule and show these cases both ways."
     )
     return result("F17 0-year point vs cash rate target", status, line, body), daily
@@ -1255,9 +1253,9 @@ def check_forwards(yields, forwards, changes):
         f"{mean_c['continuous, both files']:+.2f} bp (continuous) against {mean_c['annual, both files']:+.2f} bp "
         f"(annual), a gap of {abs(mean_c['continuous, both files'] - mean_c['annual, both files']):.2f} bp. "
         "Both are far below the 1 bp rounding step of the published numbers, and the mean also moves with the "
-        "integration rule used, so it is not evidence for either basis. This corrects the README's original "
-        "statement that the integral check settles the compounding on its own. Continuous compounding rests "
-        "on the RBA's definition z = -log(d) / t above and the README's discount-factor check (3 Jan 2017). "
+        "integration rule used, so it is not evidence for either basis: the integral check cannot settle "
+        "the compounding on its own. Continuous compounding rests "
+        "on the RBA's definition z = -log(d) / t above and a discount-factor check on 3 Jan 2017. "
         "The F17 discount-factor file on the RBA site would settle it on every date; it is not on disk.\n\n"
         f"F17 forward at 0 years equals the 0-year yield on every date: {'yes' if f0_equal else 'NO'}.\n\n"
         "**Conclusion.** The F17 forward rate at maturity m is the instantaneous (overnight) forward rate for "
@@ -1268,7 +1266,7 @@ def check_forwards(yields, forwards, changes):
         f"{overnight_gap_bp:.3f} bp at the sample's highest 0-year rate ({r_max:.2f}%).\n\n"
         "Reading the short end (RDP 2008-09, App. A, if the method still applies): the 3 and 6-month "
         "forwards come from the OIS-fitted segment, so they are close to OIS-implied forwards of the actual "
-        "cash rate, and the the README M5 'OIS benchmark next to F17' would largely repeat them. The 12-month "
+        "cash rate, and the M5 'OIS benchmark next to F17' would largely repeat them. The 12-month "
         "forward sits at the end of the OIS inputs, next to the 1-year to 18-month stretch with no inputs, "
         "where the paper reports the largest fitting errors; treat 12-month results as less reliable. "
         "Figure: `forward_check_by_maturity.png`."
@@ -1417,7 +1415,7 @@ def check_ycc(yields):
         "This FLAG is a finding about F17, not a data error: a fitted curve only partly shows a policy that "
         "pins one bond.\n\n"
         "**For M3 and M4:** in the YCC period the 3-year point was held down by policy, so its daily changes "
-        "are small and not driven by the usual factors; the README already treats Mar 2020 - Nov 2021 as its own "
+        "are small and not driven by the usual factors, so M3 treats Mar 2020 - Nov 2021 as its own "
         "period."
     )
     return result("Yield curve control (YCC)", status, line, body), table
@@ -1443,7 +1441,7 @@ def plot_ycc(table, path):
 
 
 # Check 11 - F17 10-year zero yield against the F2 10-year bond yield
-# (added in M5, the README "M1 additions")
+# (added in M5)
 #
 # F2 is gitignored (licence unchecked). Everything below keeps F2 values in
 # memory; the report gets statistics and the chart gets the gap only.
@@ -1501,7 +1499,7 @@ def check_f2(yields):
     """
     name = "F17 vs F2 10-year cross-check"
     if not (RAW_DIR / F2_FILE).exists():
-        line = "F2 is not on disk (gitignored; see the README, Missing inputs). Re-download from MANIFEST.csv to run it."
+        line = "F2 is not on disk (gitignored). Re-download from MANIFEST.csv to run it."
         return result(name, "NOT RUN", line, line), None
 
     f2 = load_f2()
@@ -1592,8 +1590,8 @@ def plot_f2_gap(levels, path):
     mean with its monthly min-max band.
 
     Only monthly statistics of the gap are drawn, never the F2 yield or the daily gap: F17 is
-    published in data/processed/, so a daily gap would let anyone read back the F2 series, and
-    F2 is not ours to publish.
+    public, so a daily gap would let anyone read back the F2 series, and F2 is not ours to
+    publish.
     """
     month = levels["gap_bp"].resample("ME")
     stats = pd.DataFrame({"mean": month.mean(), "lo": month.min(), "hi": month.max()}).dropna()
@@ -1610,7 +1608,7 @@ def plot_f2_gap(levels, path):
 
 
 # Check 12 - F17 0-year point against F1's interbank overnight cash rate
-# (added in M5, the README "M1 additions")
+# (added in M5)
 #
 # Confirms check 8's reading that the 0-year point is the actual cash rate,
 # not the target. F1 is gitignored (its OIS columns are FENICS data); only
@@ -1639,7 +1637,7 @@ def check_f1_cash_rate(yields, changes):
     """
     name = "F17 0-year point vs F1 actual cash rate"
     if not (RAW_DIR / F1_FILE).exists():
-        line = "F1 is not on disk (gitignored; see the README, Missing inputs). Re-download from MANIFEST.csv to run it."
+        line = "F1 is not on disk (gitignored). Re-download from MANIFEST.csv to run it."
         return result(name, "NOT RUN", line, line)
 
     f1 = load_f1()
@@ -1709,52 +1707,11 @@ def check_f1_cash_rate(yields, changes):
 
 # Outputs
 
-def write_processed(yields, forwards, changes):
-    """Write tidy copies of the inputs to data/processed/ for later milestones.
-
-    Files (all CSV, ISO dates YYYY-MM-DD, one header row, blanks = missing):
-      f17_yields.csv, f17_forwards.csv - 'date' column, then one column per
-          maturity named in years ('0.0', '0.25', ... '10.0'), per cent;
-      cash_rate_changes.csv - every A2 row (output of load_a2, including
-          covers_until) plus 'in_f17_sample' (True if the effective date is
-          inside the F17 dates);
-      cash_rate_target_daily.csv - every calendar day from the first to the
-          last F17 date, with target_in_effect and target_known_at_close
-          (blank where A2 cannot know the target: the last day, for
-          target_known_at_close).
-    Read back with pd.read_csv(path, parse_dates=['date'], index_col='date')
-    and convert curve column names with float(...).
-    """
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    for name, frame in (("f17_yields.csv", yields), ("f17_forwards.csv", forwards)):
-        out = frame.copy()
-        out.columns = [str(c) for c in out.columns]  # 0.0 -> "0.0", 0.25 -> "0.25", 10.0 -> "10.0"
-        out.index = out.index.strftime("%Y-%m-%d")
-        out.index.name = "date"
-        out.to_csv(PROCESSED_DIR / name)
-
-    first, last = yields.index[0], yields.index[-1]
-    out = changes.copy()
-    out["in_f17_sample"] = (out["effective_date"] >= first) & (out["effective_date"] <= last)
-    for col in ("effective_date", "announcement_date", "covers_until"):
-        out[col] = out[col].dt.strftime("%Y-%m-%d")
-    out.to_csv(PROCESSED_DIR / "cash_rate_changes.csv", index=False)
-
-    days = pd.date_range(first, last, freq="D")
-    daily = pd.DataFrame({
-        "date": days.strftime("%Y-%m-%d"),
-        "target_in_effect": target_in_effect(days, changes).to_numpy(),
-        "target_known_at_close": target_known_at_close(days, changes).to_numpy(),
-    })
-    daily.to_csv(PROCESSED_DIR / "cash_rate_target_daily.csv", index=False)
-    return ["f17_yields.csv", "f17_forwards.csv", "cash_rate_changes.csv", "cash_rate_target_daily.csv"]
-
-
-def write_report(results, processed_files):
+def write_report(results):
     """Assemble outputs/m1/validation_report.md from the check results.
 
     Layout: header, summary table (one line per check), one
-    section per check, then the list of files written.
+    section per check, then the list of files written to outputs/m1/.
     """
     counts = pd.Series([r["status"] for r in results]).value_counts()
     summary = pd.DataFrame({
@@ -1773,8 +1730,8 @@ def write_report(results, processed_files):
         "F1 and F2 are gitignored third-party data (F1's OIS columns are FENICS data; F2's licence is "
         "unchecked). This report and its charts hold only statistics derived from them, never their series.",
         "",
-        "PASS = as expected. FLAG = read before M2 (a finding or a the README correction, not necessarily an "
-        "error). NOT RUN = input missing.",
+        "PASS = as expected. FLAG = a finding to read before the next step, not necessarily an error. "
+        "NOT RUN = input missing.",
         "",
         f"Totals: {', '.join(f'{k} {v}' for k, v in counts.items())}.",
         "",
@@ -1794,12 +1751,13 @@ def write_report(results, processed_files):
         "- `outputs/m1/forward_check_by_maturity.png`, `outputs/m1/ycc_3y_vs_target.png`, "
         "`outputs/m1/zero_year_spread.png`",
         "- `outputs/m1/f2_10y_gap.png` - check 11, the F2 - F17 10-year gap (written only when F2 is on disk)",
-    ] + [f"- `data/processed/{name}`" for name in processed_files] + [""]
+        "",
+    ]
     REPORT_PATH.write_text("\n".join(parts), encoding="utf-8")
 
 
 def main():
-    """Run every M1 check, write the report, figures and tidy files, print a summary."""
+    """Run every M1 check, write the report and figures, print a summary."""
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     yields = load_f17("yields")
@@ -1831,8 +1789,7 @@ def main():
     if f2_levels is not None:
         plot_f2_gap(f2_levels, OUT_DIR / "f2_10y_gap.png")
 
-    processed = write_processed(yields, forwards, changes)
-    write_report(results, processed)
+    write_report(results)
 
     print(f"M1 validation: report written to {REPORT_PATH.relative_to(PROJECT_DIR)}")
     for number, item in enumerate(results, start=1):

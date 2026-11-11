@@ -1,4 +1,4 @@
-"""M5 - robustness: which results survive? the README, "M5 - Robustness and write-up".
+"""M5 - robustness: which results survive?
 
 Four parts, each reusing the M2 / M4 functions by importing them (nothing is copied): 1. the OIS
 benchmark (OIS, the F17 zero yield and no change as forecasts of the average actual cash rate over
@@ -40,7 +40,7 @@ from m3_factors import MATURITIES, to_text, pca_loadings  # noqa: E402
 OUT_DIR = PROJECT_DIR / "outputs" / "m5"
 REPORT_PATH = OUT_DIR / "robustness_report.md"
 
-OIS_HORIZONS = [1, 3, 6]                                  # months (the README M5)
+OIS_HORIZONS = [1, 3, 6]                                  # months
 OIS_COLUMN = {1: "ois_1m", 3: "ois_3m", 6: "ois_6m"}      # data.load_f1 column for each horizon
 OIS_FORECASTS = {"ois": "OIS", "f17_zero": "F17 zero", "no_change": "no change"}
 OIS_PAIRS = [("ois", "f17_zero"), ("ois", "no_change"), ("f17_zero", "no_change")]  # model vs bench
@@ -164,7 +164,7 @@ def forecast_tables(panels, forecasts, pairs):
                  Newey-West lag h, m2.hac_ols), MAE, RMSE (bp; m2.error_stats).
       dm       - per h and pair: m2.diebold_mariano on squared errors, d = e_model^2 - e_bench^2
                  (negative = model better): mean d, Newey-West t and p (lag h), HLN p.
-      episodes - per h and the README episode: n, then bias and RMSE of each forecast.
+      episodes - per h and episode: n, then bias and RMSE of each forecast.
     """
     acc, dm, ep = [], [], []
     for h, p in panels.items():

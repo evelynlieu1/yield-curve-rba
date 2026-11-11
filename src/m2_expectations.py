@@ -1,7 +1,7 @@
 """M2 - expectations test: does the F17 forward rate predict the cash rate target?
 
 Run from the project folder: python src/m2_expectations.py
-Method, sample and decisions: the README, section M2. Forecasts made at the F17 close on t: 'forward', 'gap_adj'
+Forecasts made at the F17 close on t: 'forward', 'gap_adj'
 and 'no_change' (see build_panel), judged against target_in_effect(t + h months). Writes outputs/m2/
 (report, two PNGs, forecasts.csv). Rates in per cent per annum; errors in bp, error = outcome - forecast.
 """
@@ -32,13 +32,13 @@ OUT_DIR = PROJECT_DIR / "outputs" / "m2"
 REPORT_PATH = OUT_DIR / "expectations_report.md"
 
 BP = 100.0                    # per cent -> basis points
-MAIN_HORIZONS = [3, 6]        # months (the README M2)
+MAIN_HORIZONS = [3, 6]        # months
 ALL_HORIZONS = [3, 6, 12]     # 12 months is the robustness horizon
-LAST_OUTCOME_DATE = pd.Timestamp("2026-09-30")  # the README: t + h on or before 30 Sep 2026
+LAST_OUTCOME_DATE = pd.Timestamp("2026-09-30")  # keep forecasts whose outcome date t + h is on or before this
 MID_MONTH_DAY = 15            # mid-month variant: last F17 day on or before the 15th
 N_MISSES = 10                 # largest forward misses listed per horizon
 
-# Episodes by forecast month (the README M2; the boundaries are judgement).
+# Episodes by forecast month (the boundaries are judgement).
 EPISODES = [
     ("Steady", "2017-01", "2019-04"),
     ("Easing to the floor", "2019-05", "2020-11"),
@@ -172,7 +172,7 @@ def hac_ols(y, X, h):
     Output: statsmodels results object (params, bse, tvalues, pvalues).
     Conventions (spelled out in the call; tests/test_m2.py checks them by hand): Bartlett weights
     1 - j / (h + 1) for lags j = 1..h, no small-sample scaling, p-values from t(n - k).
-    Why lag h (the README M2): an h-month forecast made every month overlaps the next h - 1, so errors
+    Why lag h: an h-month forecast made every month overlaps the next h - 1, so errors
     are at least MA(h - 1). Lag h is a floor, not a margin: Bartlett gives lag h - 1 only weight
     2 / (h + 1) (0.5 at h = 3), and clustered rate changes can keep errors correlated beyond h - 1,
     so these p-values are on the low side (diebold_mariano also reports the HLN version).
@@ -486,7 +486,7 @@ def write_report(ctx):
         f"gap adjustment lowers the bias by {min(bias_drop):.1f}-{max(bias_drop):.1f} bp but hardly moves RMSE: the "
         f"gap (mean {gap6.mean():.1f} bp on the 6-month dates) is small next to the misses.",
         "", "## Accuracy by episode", "",
-        "Episodes by forecast date (the README; boundaries are judgement). fwd = forward, gap-adj = gap-adjusted "
+        "Episodes by forecast date (boundaries are judgement). fwd = forward, gap-adj = gap-adjusted "
         "forward, no-chg = no change; bias, MAE, RMSE in bp.", "",
     ]
     for h in MAIN_HORIZONS:
@@ -556,7 +556,7 @@ def main():
     setup = pd.DataFrame([{"h (months)": h, "F17 maturity read (years)": f"{h / 12:.2f}", "n": len(p),
                            "first t": p["t"].min(), "last t": p["t"].max(), "last outcome date": p["outcome_date"].max()}
                           for h, p in panels.items()])
-    # Forecast dates where the two outcome-date rules give different targets (the README M2 decision).
+    # Forecast dates where the two outcome-date rules give different targets.
     both = pd.concat(panels.values()).merge(pd.concat(by_days.values()), on=["h", "t"], suffixes=("_m", "_d"))
     rule_cases = both.loc[both["outcome_m"] != both["outcome_d"],
                           ["h", "t", "outcome_date_m", "outcome_m", "outcome_date_d", "outcome_d"]]

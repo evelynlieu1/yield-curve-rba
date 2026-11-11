@@ -42,7 +42,7 @@ The forward beats no change on MAE and RMSE at every horizon. 'bias p' tests mea
 
 ## Accuracy by episode
 
-Episodes by forecast date (the README; boundaries are judgement). fwd = forward, gap-adj = gap-adjusted forward, no-chg = no change; bias, MAE, RMSE in bp.
+Episodes by forecast date (boundaries are judgement). fwd = forward, gap-adj = gap-adjusted forward, no-chg = no change; bias, MAE, RMSE in bp.
 
 **h = 3 months** (episodes where no change has the lower RMSE: none)
 
